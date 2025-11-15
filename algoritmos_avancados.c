@@ -7,14 +7,24 @@
 
 
 
-typedef struct{
+typedef struct sala{
     char nome[30];
+    char pista[100];
     struct sala *esq;
     struct sala *dir;
 }Sala;
 
+typedef struct pistaNode{
+    char conteudo[100];
+    struct pistaNode*esq;
+    struct pistaNode*dir;
 
-Sala* criarSala(const char *nome){
+}PistaNode;
+
+
+
+
+Sala* criarSala(const char *nome, const char *pista){
     Sala *nova = (Sala*)malloc(sizeof(Sala));
     if (!nova){
         printf("Erro de alocação\n");
@@ -22,25 +32,72 @@ Sala* criarSala(const char *nome){
     }
 
     strcpy(nova->nome, nome);
+
+    if (pista != NULL)
+    {
+        strcpy(nova->pista, pista);
+    }
+    else{
+        strcpy(nova->pista, "");
+    }
+    
     nova->esq = NULL;
     nova->dir = NULL;
     return nova;
 }
 
-void explorarSalas(Sala *atual) {
+PistaNode* criarNoPista(const char *texto) {
+    PistaNode *novo = (PistaNode*) malloc(sizeof(PistaNode));
+    if (!novo) {
+        printf("Erro ao alocar memória para pista!\n");
+        exit(1);
+    }
+
+    strcpy(novo->conteudo, texto);
+    novo->esq = NULL;
+    novo->dir = NULL;
+    return novo;
+}
+
+// Insere pista na BST em ordem alfabética
+PistaNode* inserirPista(PistaNode *raiz, const char *texto) {
+    if (raiz == NULL)
+        return criarNoPista(texto);
+
+    if (strcmp(texto, raiz->conteudo) < 0)
+        raiz->esq = inserirPista(raiz->esq, texto);
+    else if (strcmp(texto, raiz->conteudo) > 0)
+        raiz->dir = inserirPista(raiz->dir, texto);
+
+    return raiz;
+}
+
+// Exibir pistas em ordem alfabética
+void exibirPistas(PistaNode *raiz) {
+    if (raiz == NULL) return;
+
+    exibirPistas(raiz->esq);
+    printf("- %s\n", raiz->conteudo);
+    exibirPistas(raiz->dir);
+}
+
+
+void explorarSalasComPistas(Sala *atual, PistaNode **pistas) {
     char escolha;
 
-    while (atual != NULL) {
-        printf("\nVocê está na sala: %s\n", atual->nome);
+    while (1) {
+        printf("Você está na sala: %s\n", atual->nome);
 
-        // Caso seja nó-folha
-        if (atual->esq == NULL && atual->dir == NULL) {
-            printf("Não há mais caminhos a partir daqui.\n");
-            printf("Fim da exploração.\n");
-            return;
+        // Coletar pista, caso haja
+        if (strlen(atual->pista) > 0) {
+            printf("Pista encontrada: \"%s\"\n", atual->pista);
+            *pistas = inserirPista(*pistas, atual->pista);
+        } else {
+            printf("Nenhuma pista encontrada nesta sala.\n");
         }
 
-        printf("Escolha um caminho:\n");
+        // Opções
+        printf("\nEscolha o próximo caminho:\n");
         printf("  (e) Ir para a esquerda\n");
         printf("  (d) Ir para a direita\n");
         printf("  (s) Sair da exploração\n");
@@ -48,21 +105,19 @@ void explorarSalas(Sala *atual) {
         scanf(" %c", &escolha);
 
         if (escolha == 'e' || escolha == 'E') {
-            if (atual->esq != NULL) {
+            if (atual->esq != NULL)
                 atual = atual->esq;
-            } else {
+            else
                 printf("Não existe sala à esquerda!\n");
-            }
         }
         else if (escolha == 'd' || escolha == 'D') {
-            if (atual->dir != NULL) {
+            if (atual->dir != NULL)
                 atual = atual->dir;
-            } else {
+            else
                 printf("Não existe sala à direita!\n");
-            }
         }
         else if (escolha == 's' || escolha == 'S') {
-            printf("Saindo da exploração...\n");
+            printf("\nEncerrando exploração...\n");
             return;
         }
         else {
@@ -72,45 +127,9 @@ void explorarSalas(Sala *atual) {
 }
 
 
+
 int main() {
-
-    // 🌱 Nível Novato: Mapa da Mansão com Árvore Binária
-    //
-    // - Crie uma struct Sala com nome, e dois ponteiros: esquerda e direita.
-    // - Use funções como criarSala(), conectarSalas() e explorarSalas().
-    // - A árvore pode ser fixa: Hall de Entrada, Biblioteca, Cozinha, Sótão etc.
-    // - O jogador deve poder explorar indo à esquerda (e) ou à direita (d).
-    // - Finalize a exploração com uma opção de saída (s).
-    // - Exiba o nome da sala a cada movimento.
-    // - Use recursão ou laços para caminhar pela árvore.
-    // - Nenhuma inserção dinâmica é necessária neste nível.
  
-    //Criando salas
-    Sala *hall = criarSala("Hall de Entrada");
-    Sala *salaEstar = criarSala("Sala de Estar");
-    Sala *biblioteca = criarSala("Biblioteca");
-    Sala *cozinha = criarSala("Cozinha");
-    Sala *jardim = criarSala("Jardim");
-    Sala *porao = criarSala("Porão");
-
-    hall->esq = salaEstar;
-    hall->dir = biblioteca;
-    salaEstar->esq = cozinha;
-    salaEstar->dir = jardim;
-    biblioteca->dir = porao;
-
-    // Iniciar exploração
-    printf("--- Detective Quest — Exploração da Mansão ---\n");
-    explorarSalas(hall);
-
-    // Liberação de memória 
-    free(cozinha);
-    free(jardim);
-    free(salaEstar);
-    free(porao);
-    free(biblioteca);
-    free(hall);
-
 
     // 🔍 Nível Aventureiro: Armazenamento de Pistas com Árvore de Busca
     //
@@ -122,6 +141,36 @@ int main() {
     // - Não precisa remover ou balancear a árvore.
     // - Use funções para modularizar: inserirPista(), listarPistas().
     // - A árvore de pistas deve ser exibida quando o jogador quiser revisar evidências.
+
+    //Criando salas
+    Sala *hall        = criarSala("Hall de Entrada", "Pegadas recentes no carpete");
+    Sala *salaEstar   = criarSala("Sala de Estar", "Um relógio parado às 23h15");
+    Sala *biblioteca  = criarSala("Biblioteca", "Um livro arrancado da estante");
+    Sala *cozinha     = criarSala("Cozinha", "Copo quebrado no chão");
+    Sala *jardim      = criarSala("Jardim", "Terra remexida próxima às flores");
+    Sala *porao       = criarSala("Porão", "Luz fraca piscando sozinha");
+
+
+    hall->esq = salaEstar;
+    hall->dir = biblioteca;
+    salaEstar->esq = cozinha;
+    salaEstar->dir = jardim;
+    biblioteca->dir = porao;
+
+    PistaNode *pistas = NULL;
+
+
+    // Iniciar exploração
+    printf("--- Detective Quest — Exploração da Mansão ---\n");
+    explorarSalasComPistas(hall, &pistas);
+
+    printf("Pistas coletadas:\n");
+
+    if (pistas == NULL)
+        printf("Nenhuma pista foi coletada.\n");
+    else
+        exibirPistas(pistas);
+
 
     // 🧠 Nível Mestre: Relacionamento de Pistas com Suspeitos via Hash
     //
